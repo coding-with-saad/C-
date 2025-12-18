@@ -1,22 +1,21 @@
 #include <iostream>
-#include <conio.h> // For _getch()
+#include <conio.h>
 #include <vector>
 #include <fstream>
 #include <string>
-#include <iomanip> // For setw
-#include <map>     // For std::map in LoyaltyProgram
-#include <algorithm> // For std::remove, std::rename
+#include <iomanip>
+#include <map>
+#include <algorithm>
+#include <sstream>
 
 using namespace std;
 
-// Forward declarations for classes used as pointers/references
 class SeatManager;
 class PaymentGateway;
 class NotificationService;
 class LoyaltyProgram;
 class AnalyticsDashboard;
 
-// ===================== STRUCTS =====================
 struct ticket
 {
     string cnic;
@@ -36,31 +35,40 @@ struct SimpleMovieStats {
     string movie_name;
     int total_rating_sum;
     int review_count;
-    double average_rating; // To store the calculated average
+    double average_rating;
 
-    // Constructor to easily initialize when creating a new stat entry
     SimpleMovieStats(string name = "", int rating = 0) :
         movie_name(name), total_rating_sum(rating), review_count(1), average_rating(0.0) {}
 };
 
-// ===================== ABSTRACT BASE CLASS =====================
 class motiveTheater
 {
 public:
     virtual void purposeofthisTheater() = 0;
 };
 
-// ===================== CORE MOVIE CLASS =====================
 class movie
 {
 protected:
     const int total_tickets = 100;
     static int available_tickets;
+    static vector<string> movies;
 
 public:
+    static void loadMovies() {
+        ifstream file("movies.txt");
+        if (!file.is_open()) return;
+        movies.clear();
+        string movie;
+        while(getline(file, movie)) {
+            movies.push_back(movie);
+        }
+        file.close();
+    }
+
     void showAvailableTickets()
     {
-        cout << total_tickets;
+        cout << available_tickets;
     }
     static int returnAvailableTickets()
     {
@@ -68,34 +76,36 @@ public:
     }
     void movieList()
     {
-        cout << "1.Pathan" << endl;
-        cout << "2.Shiddat" << endl;
-        cout << "3.Azadi" << endl;
-        cout << "4.Lifetime" << endl;
-        cout << "5.Afghani" << endl;
-        cout << "6.Sita Ramam" << endl;
-        cout << "7.Mission Impossible 7" << endl;
-        cout << "8.Kudo" << endl;
-        cout << "9.Loyality matters" << endl;
-        cout << "10.Power is power" << endl;
+        if (movies.empty()) {
+            cout << "No movies available." << endl;
+            return;
+        }
+        cout << "\n--- Movie List ---\n";
+        for (size_t i = 0; i < movies.size(); ++i) {
+            cout << i + 1 << ". " << movies[i] << endl;
+        }
+    }
+    static string getMovieName(int index) {
+        if (index > 0 && (size_t)index <= movies.size()) {
+            return movies[index - 1];
+        }
+        return "";
     }
 };
 
-// Initialize static member
 int movie::available_tickets = 100;
+vector<string> movie::movies;
 
-// ===================== FILE HANDLING BASE CLASS =====================
 class handlingFiles : public movie
 {
 public:
-    void bookTicket_file(const ticket& T) // Pass ticket object directly
+    void bookTicket_file(const ticket& T)
     {
         ofstream file;
         file.open("tickets.txt", ios::app);
         file << T.cnic << "\t" << T.movie_name << "\t" << T.day << endl;
         file.close();
 
-        // 🎟 Show the ticket receipt here
         cout << "\n============= 🎟 Ticket Receipt =============\n";
         cout << "✔ Ticket successfully booked!\n";
         cout << "CNIC         : " << T.cnic << endl;
@@ -114,8 +124,14 @@ public:
         ofs.open("reviews.txt", ios::app);
 
         bool cnicFound = false;
-        while (ifs >> T.cnic >> T.movie_name >> T.day) // Read all fields
+        string line;
+        while (getline(ifs, line))
         {
+            stringstream ss(line);
+            getline(ss, T.cnic, '\t');
+            getline(ss, T.movie_name, '\t');
+            getline(ss, T.day);
+
             if (CNIC == T.cnic)
             {
                 cnicFound = true;
@@ -126,18 +142,8 @@ public:
                 movieList();
                 cin >> n;
 
-                // Assign movie name based on choice
-                if (n == 1) R.movie_name = "Pathan";
-                else if (n == 2) R.movie_name = "Shiddat";
-                else if (n == 3) R.movie_name = "Azadi";
-                else if (n == 4) R.movie_name = "LifeTime";
-                else if (n == 5) R.movie_name = "Afghani";
-                else if (n == 6) R.movie_name = "Sita Ramam";
-                else if (n == 7) R.movie_name = "Mission Impossible 7";
-                else if (n == 8) R.movie_name = "Kudo";
-                else if (n == 9) R.movie_name = "Loyality matters";
-                else if (n == 10) R.movie_name = "Power is power";
-                else {
+                R.movie_name = movie::getMovieName(n);
+                if (R.movie_name.empty()) {
                     cout << "Invalid movie choice." << endl;
                     ifs.close();
                     ofs.close();
@@ -145,8 +151,9 @@ public:
                 }
 
                 R.cnic = CNIC;
-                cout << "Enter your review in a liner (no spaces):" << endl; // Changed to single word input for simplicity with cin
-                cin >> R.Review;
+                cout << "Enter your review:" << endl;
+                cin.ignore();
+                getline(cin, R.Review);
                 cout << "Also enter the rating for the Film 1-5" << endl;
                 cin >> R.rating;
 
@@ -155,7 +162,7 @@ public:
                 cout << "Thanks for your feedback" << endl;
                 ifs.close();
                 ofs.close();
-                return; // Exit after finding and processing CNIC
+                return;
             }
         }
 
@@ -178,8 +185,15 @@ public:
             return;
         }
         cout << "\n--- All Movie Reviews ---\n";
-        while (ifs >> r.cnic >> r.movie_name >> r.Review >> r.rating)
+        string line;
+        while (getline(ifs, line))
         {
+            stringstream ss(line);
+            getline(ss, r.cnic, '\t');
+            getline(ss, r.movie_name, '\t');
+            getline(ss, r.Review, '\t');
+            ss >> r.rating;
+
             cout << "CNIC: " << r.cnic
                  << " | Movie: " << r.movie_name
                  << " | Review: " << r.Review
@@ -189,7 +203,6 @@ public:
     }
 };
 
-// ===================== NEW UTILITY CLASSES (Composition) =====================
 class SeatManager {
 private:
     const int ROWS = 10;
@@ -198,7 +211,7 @@ private:
 
 public:
     SeatManager() {
-        seatMap.resize(ROWS, vector<bool>(SEATS_PER_ROW, false)); // Initialize all seats as available
+        seatMap.resize(ROWS, vector<bool>(SEATS_PER_ROW, false));
     }
 
     void displaySeatMap() {
@@ -220,19 +233,19 @@ public:
 
     bool bookSeat(char rowChar, int seatNum) {
         int row = toupper(rowChar) - 'A';
-        seatNum--; // Convert to 0-based index
+        seatNum--;
 
         if (row < 0 || row >= ROWS || seatNum < 0 || seatNum >= SEATS_PER_ROW) {
             cout << "Invalid seat selection.\n";
-            return false; // Invalid seat selection
+            return false;
         }
 
         if (!seatMap[row][seatNum]) {
-            seatMap[row][seatNum] = true; // Mark seat as booked
+            seatMap[row][seatNum] = true;
             return true;
         }
         cout << "Seat " << rowChar << seatNum + 1 << " is already booked.\n";
-        return false; // Seat already booked
+        return false;
     }
 };
 
@@ -249,9 +262,8 @@ public:
         }
 
         cout << "Processing payment of Rs." << amount << "...\n";
-        // Simulate payment processing
         cout << "Payment successful!\n";
-        return true; // Assume payment is successful
+        return true;
     }
 };
 
@@ -278,8 +290,6 @@ public:
     }
 
     void showTopMovies() {
-        // This function is now implemented in FilmReviews::topmovies()
-        // You can call that function here if you want to show it from Admin
         cout << "Top Movies based on ratings (see User Menu -> View Top Movies):\n";
     }
 };
@@ -297,7 +307,7 @@ public:
 
 class LoyaltyProgram {
 private:
-    map<string, int> pointsMap; // CNIC -> Points
+    map<string, int> pointsMap;
 
 public:
     void addPoints(const string& cnic, int points) {
@@ -307,7 +317,7 @@ public:
 
     void redeemPoints(const string& cnic) {
         if (pointsMap.count(cnic) && pointsMap[cnic] >= 10) {
-            pointsMap[cnic] -= 10; // Redeem 10 points
+            pointsMap[cnic] -= 10;
             cout << "Redeemed 10 points for CNIC: " << cnic << endl;
         } else {
             cout << "Not enough points to redeem for CNIC: " << cnic << endl;
@@ -315,26 +325,24 @@ public:
     }
 };
 
-// ===================== USER CLASS =====================
 class User
 {
 private:
     string name;
     int age;
-    string cnic; // Changed to string for consistency with ticket/review structs
+    string cnic;
 
 public:
     void getUserData()
     {
         cout << "Enter your name: ";
-        cin.ignore(); // Clear buffer before getline
+        cin.ignore();
         getline(cin, name);
         cout << "Enter your age: ";
         cin >> age;
         cout << "Enter your CNIC: ";
         cin >> cnic;
 
-        // Save to file
         ofstream file("customers.txt", ios::app);
         if (!file.is_open()) {
             cout << "Error opening customers.txt for writing.\n";
@@ -351,7 +359,7 @@ public:
         cout << "Age: " << age << endl;
     }
 
-    string getCNIC() // Return string
+    string getCNIC()
     {
         return cnic;
     }
@@ -360,7 +368,6 @@ public:
     }
 };
 
-// ===================== BOOK TICKETS CLASS =====================
 class BookTickets : public handlingFiles
 {
 private:
@@ -382,29 +389,19 @@ public:
         }
 
         User u;
-        u.getUserData(); // Collect user info first
+        u.getUserData();
 
         int movieChoice;
-        movieList(); // Display movie list
+        movieList();
         cout << "Enter your movie choice: ";
         cin >> movieChoice;
 
-        ticket T; // Declare ticket object here
+        ticket T;
         T.cnic = u.getCNIC();
-        T.day = "Friday"; // Default day
+        T.day = "Friday";
 
-        // Assign movie name based on choice
-        if (movieChoice == 1) T.movie_name = "Pathan";
-        else if (movieChoice == 2) T.movie_name = "Shiddat";
-        else if (movieChoice == 3) T.movie_name = "Azadi";
-        else if (movieChoice == 4) T.movie_name = "LifeTime";
-        else if (movieChoice == 5) T.movie_name = "Afghani";
-        else if (movieChoice == 6) T.movie_name = "Sita Ramam";
-        else if (movieChoice == 7) T.movie_name = "Mission Impossible 7";
-        else if (movieChoice == 8) T.movie_name = "Kudo";
-        else if (movieChoice == 9) T.movie_name = "Loyality matters";
-        else if (movieChoice == 10) T.movie_name = "Power is power";
-        else {
+        T.movie_name = movie::getMovieName(movieChoice);
+        if (T.movie_name.empty()) {
             cout << "Invalid movie choice. Ticket booking cancelled." << endl;
             return;
         }
@@ -416,11 +413,11 @@ public:
         cin >> rowChar >> seatNum;
 
         if (seatManager->bookSeat(rowChar, seatNum)) {
-            if (paymentGateway->processPayment(500.0)) { // Assuming ticket price is 500
-                bookTicket_file(T); // Write ticket to file
-                notifier->sendBookingConfirmation(T); // Send confirmation
-                loyalty->addPoints(T.cnic, 10); // Add loyalty points
-                movie::available_tickets--; // Decrease available tickets
+            if (paymentGateway->processPayment(500.0)) {
+                bookTicket_file(T);
+                notifier->sendBookingConfirmation(T);
+                loyalty->addPoints(T.cnic, 10);
+                movie::available_tickets--;
             } else {
                 cout << "Payment failed. Ticket not booked.\n";
             }
@@ -430,7 +427,6 @@ public:
     }
 };
 
-// ===================== FILM REVIEWS CLASS =====================
 class FilmReviews : public handlingFiles
 {
 public:
@@ -454,13 +450,17 @@ public:
             return;
         }
 
-        vector<SimpleMovieStats> movieStatsList; // To store aggregated data for each unique movie
+        vector<SimpleMovieStats> movieStatsList;
         movieReview r;
+        string line;
+        while (getline(ifs, line)) {
+            stringstream ss(line);
+            getline(ss, r.cnic, '\t');
+            getline(ss, r.movie_name, '\t');
+            getline(ss, r.Review, '\t');
+            ss >> r.rating;
 
-        // 1. Read all reviews and aggregate data
-        while (ifs >> r.cnic >> r.movie_name >> r.Review >> r.rating) {
             bool foundMovie = false;
-            // Check if this movie already exists in our list
             for (size_t i = 0; i < movieStatsList.size(); ++i) {
                 if (movieStatsList[i].movie_name == r.movie_name) {
                     movieStatsList[i].total_rating_sum += r.rating;
@@ -469,33 +469,29 @@ public:
                     break;
                 }
             }
-            // If movie not found, add it as a new entry
             if (!foundMovie) {
-                SimpleMovieStats newStats(r.movie_name, r.rating); // Use constructor
+                SimpleMovieStats newStats(r.movie_name, r.rating);
                 movieStatsList.push_back(newStats);
             }
         }
-        ifs.close(); // Close the reviews file
+        ifs.close();
 
         if (movieStatsList.empty()) {
             cout << "No movies found with ratings." << endl;
             return;
         }
 
-        // 2. Calculate average rating for each movie
         for (size_t i = 0; i < movieStatsList.size(); ++i) {
             if (movieStatsList[i].review_count > 0) {
                 movieStatsList[i].average_rating = static_cast<double>(movieStatsList[i].total_rating_sum) / movieStatsList[i].review_count;
             } else {
-                movieStatsList[i].average_rating = 0.0; // Should not happen if count > 0
+                movieStatsList[i].average_rating = 0.0;
             }
         }
 
-        // 3. Manually sort the movies by average rating in descending order (using Bubble Sort)
         for (size_t i = 0; i < movieStatsList.size() - 1; ++i) {
             for (size_t j = 0; j < movieStatsList.size() - 1 - i; ++j) {
                 if (movieStatsList[j].average_rating < movieStatsList[j+1].average_rating) {
-                    // Swap elements if the current one is smaller than the next
                     SimpleMovieStats temp = movieStatsList[j];
                     movieStatsList[j] = movieStatsList[j+1];
                     movieStatsList[j+1] = temp;
@@ -511,7 +507,6 @@ public:
     }
 };
 
-// ===================== TICKET MANAGEMENT CLASSES =====================
 class SearchTicket : public handlingFiles
 {
 public:
@@ -528,9 +523,15 @@ public:
         }
         ticket T;
         bool found = false;
+        string line;
 
-        while (file >> T.cnic >> T.movie_name >> T.day)
+        while (getline(file, line))
         {
+            stringstream ss(line);
+            getline(ss, T.cnic, '\t');
+            getline(ss, T.movie_name, '\t');
+            getline(ss, T.day);
+
             if (T.cnic == searchCnic)
             {
                 found = true;
@@ -573,14 +574,20 @@ public:
 
         ticket T;
         bool found = false;
+        string line;
 
-        while (inFile >> T.cnic >> T.movie_name >> T.day)
+        while (getline(inFile, line))
         {
+            stringstream ss(line);
+            getline(ss, T.cnic, '\t');
+            getline(ss, T.movie_name, '\t');
+            getline(ss, T.day);
+            
             if (T.cnic == searchCnic)
             {
                 found = true;
                 cout << "Ticket cancelled for CNIC: " << T.cnic << endl;
-                continue; // skip writing this record to temp file
+                continue;
             }
             tempFile << T.cnic << "\t" << T.movie_name << "\t" << T.day << endl;
         }
@@ -609,11 +616,15 @@ public:
             return;
         }
         ticket T;
-
+        string line;
         cout << "\n--- All Booked Tickets ---\n";
         cout << "--------------------------\n";
-        while (file >> T.cnic >> T.movie_name >> T.day)
+        while (getline(file, line))
         {
+            stringstream ss(line);
+            getline(ss, T.cnic, '\t');
+            getline(ss, T.movie_name, '\t');
+            getline(ss, T.day);
             cout << "CNIC: " << T.cnic
                  << " | Movie: " << T.movie_name
                  << " | Day: " << T.day << endl;
@@ -622,15 +633,13 @@ public:
     }
 };
 
-// ===================== ADMIN CLASS =====================
 class Admin : public movie, public motiveTheater
 {
 private:
-    string adminPassword = "admin123"; // Admin login password
-    AnalyticsDashboard* dashboard; // Changed to pointer
+    string adminPassword = "admin123";
+    AnalyticsDashboard* dashboard;
 
 public:
-    // Constructor to initialize dashboard
     Admin(AnalyticsDashboard* ad) : dashboard(ad) {}
 
     bool authenticate()
@@ -638,18 +647,18 @@ public:
         char ch;
         string input;
         cout << "Enter admin password: ";
-        while ((ch = _getch()) != 13) { // 13 is ASCII for Enter key
-            if (ch == 8) { // 8 is ASCII for Backspace
+        while ((ch = _getch()) != 13) {
+            if (ch == 8) {
                 if (!input.empty()) {
                     input.erase(input.size() - 1);
-                    cout << "\b \b"; // Erase character from console
+                    cout << "\b \b";
                 }
             } else {
                 input += ch;
-                cout << '*'; // Print asterisk for password character
+                cout << '*';
             }
         }
-        cout << endl; // New line after password input
+        cout << endl;
 
         if (input == adminPassword)
             return true;
@@ -660,8 +669,6 @@ public:
     void showReports() {
         if (!authenticate()) return;
         dashboard->showRevenueReport();
-        // dashboard->showTopMovies(); // This calls the placeholder in AnalyticsDashboard
-                                   // You might want to call FilmReviews::topmovies() here
     }
 
     void viewCustomerData()
@@ -676,12 +683,23 @@ public:
         }
 
         string name;
+        string age_str;
         int age;
-        string cnic; // Changed to string
+        string cnic;
+        string line;
         cout << "\n--- Registered Customers ---\n";
-        while (file >> name >> age >> cnic)
+        while (getline(file, line))
         {
-            cout << "Name: " << name << " | Age: " << age << " | CNIC: " << cnic << endl;
+            stringstream ss(line);
+            getline(ss, name, '\t');
+            getline(ss, age_str, '\t');
+            getline(ss, cnic);
+            try {
+                age = stoi(age_str);
+                cout << "Name: " << name << " | Age: " << age << " | CNIC: " << cnic << endl;
+            } catch (const std::invalid_argument& ia) {
+                cerr << "Invalid age format for customer " << name << endl;
+            }
         }
         file.close();
     }
@@ -691,7 +709,7 @@ public:
 
         string newMovie;
         cout << "Enter new movie name to add: ";
-        cin.ignore(); // Clear buffer
+        cin.ignore();
         getline(cin, newMovie);
 
         ofstream out("movies.txt", ios::app);
@@ -702,6 +720,7 @@ public:
 
         out << newMovie << endl;
         out.close();
+        movie::loadMovies();
 
         cout << "✅ Movie '" << newMovie << "' added successfully.\n";
     }
@@ -711,7 +730,7 @@ public:
 
         string movieToRemove;
         cout << "Enter movie name to remove: ";
-        cin.ignore(); // Clear buffer
+        cin.ignore();
         getline(cin, movieToRemove);
 
         ifstream in("movies.txt");
@@ -738,28 +757,13 @@ public:
 
         remove("movies.txt");
         rename("temp.txt", "movies.txt");
+        movie::loadMovies();
 
         if (found) {
             cout << "✅ Movie '" << movieToRemove << "' removed.\n";
         } else {
             cout << "❌ Movie not found.\n";
         }
-    }
-
-    void showDynamicMovieList() {
-        ifstream file("movies.txt");
-        if (!file.is_open()) {
-            cout << "No dynamic movie list available. Please add movies.\n";
-            return;
-        }
-        string movie;
-        int index = 1;
-
-        cout << "\n--- Current Movie List ---\n";
-        while (getline(file, movie)) {
-            cout << index++ << ". " << movie << endl;
-        }
-        file.close();
     }
 
     void manageMoviesMenu() {
@@ -772,20 +776,19 @@ public:
         cout << "3. View Movie List\n";
         cout << "Enter choice: ";
         cin >> choice;
-        // cin.ignore(); // No need to clear buffer here if next input is int
 
         if (choice == 1) {
-            addMovie(); // Call the separate function
+            addMovie();
         } else if (choice == 2) {
-            removeMovie(); // Call the separate function
+            removeMovie();
         } else if (choice == 3) {
-            showDynamicMovieList();
+            movieList();
         } else {
             cout << "❌ Invalid choice.\n";
         }
     }
 
-    void purposeofthisTheater() override // Mark as override
+    void purposeofthisTheater() override
     {
         cout << "  ---------------PURPOSE OF THE THEATER--------------" << endl;
         cout << "  More than just movies, we're a heart of the community." << endl;
@@ -799,7 +802,6 @@ public:
     }
 };
 
-// ===================== INITIALIZATION FUNCTION =====================
 void initializeMovieFileIfNeeded() {
     ifstream check("movies.txt");
     if (!check.is_open() || check.peek() == ifstream::traits_type::eof()) {
@@ -818,26 +820,24 @@ void initializeMovieFileIfNeeded() {
     }
 }
 
-// ===================== MAIN FUNCTION =====================
 int main() {
-    // Initialize all services
     SeatManager seatManager;
     PaymentGateway paymentGateway;
     NotificationService notifier;
     LoyaltyProgram loyaltyProgram;
     AnalyticsDashboard analytics;
-    motiveTheater* theater; // Pointer to base class for polymorphism
+    motiveTheater* theater;
 
-    // Initialize Admin with analytics dashboard
     Admin admin(&analytics);
     
-    initializeMovieFileIfNeeded(); // Ensure movie list file exists
+    initializeMovieFileIfNeeded();
+    movie::loadMovies();
 
     int main_choice;
     bool running = true;
 
     while (running) {
-        system("cls"); // Clears the console screen (Windows specific)
+        system("cls");
         cout << "=== MOVIE THEATER MANAGEMENT SYSTEM ===" << endl;
         cout << "1. User Menu" << endl;
         cout << "2. Admin Menu" << endl;
@@ -847,7 +847,7 @@ int main() {
         cin >> main_choice;
 
         switch (main_choice) {
-            case 1: {  // User Menu
+            case 1: {
                 FilmReviews fm;
                 BookTickets booker(&seatManager, &paymentGateway, &notifier, &loyaltyProgram);
                 ShowAllTickets st;
@@ -875,10 +875,10 @@ int main() {
 
                     switch (user_choice) {
                         case 1:
-                            admin.showDynamicMovieList();
+                            admin.movieList();
                             break;
                         case 2:
-                            booker.bookTicket(); // Corrected variable name
+                            booker.bookTicket();
                             break;
                         case 3:
                             fm.addmovieReview();
@@ -899,7 +899,7 @@ int main() {
                             st.displayAllTickets();
                             break;
                         case 9:
-                            theater = &admin; // Assign admin object to base pointer
+                            theater = &admin;
                             theater->purposeofthisTheater();
                             break;
                         case 0:
@@ -909,12 +909,12 @@ int main() {
                             cout << "Invalid choice!" << endl;
                     }
                     cout << "\nPress Enter to continue...";
-                    cin.ignore(); // Consume newline character left by cin >> user_choice
-                    cin.get();    // Wait for user to press Enter
+                    cin.ignore();
+                    cin.get();
                 }
                 break;
             }
-            case 2: {  // Admin Menu
+            case 2: {
                 int admin_choice;
                 bool in_admin_menu = true;
                 
@@ -940,7 +940,7 @@ int main() {
                             admin.viewCustomerData();
                             break;
                         case 4:
-                            theater = &admin; // Assign admin object to base pointer
+                            theater = &admin;
                             theater->purposeofthisTheater();
                             break;
                         case 0:
@@ -950,13 +950,13 @@ int main() {
                             cout << "Invalid choice!" << endl;
                     }
                     cout << "\nPress Enter to continue...";
-                    cin.ignore(); // Consume newline character left by cin >> admin_choice
-                    cin.get();    // Wait for user to press Enter
+                    cin.ignore();
+                    cin.get();
                 }
                 break;
             }
-            case 3: {  // About Theater
-                theater = &admin; // Assign admin object to base pointer
+            case 3: {
+                theater = &admin;
                 theater->purposeofthisTheater();
                 cout << "\nPress Enter to continue...";
                 cin.ignore();
