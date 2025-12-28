@@ -1,0 +1,83 @@
+========================================
+SMART HAJJ MANAGEMENT SYSTEM - WEB GUI
+QUICK START GUIDE
+========================================
+
+STEP 1: INSTALL NODE.JS
+------------------------
+1. Download from: https://nodejs.org/
+2. Install using default settings
+3. Restart computer if needed
+
+
+STEP 2: INSTALL BACKEND DEPENDENCIES
+-------------------------------------
+1. Open Command Prompt (cmd)
+2. Type: cd "F:\claude cli 20 12 2025\backend"
+3. Type: npm install
+4. Wait for installation to complete
+
+
+STEP 3: START BACKEND SERVER
+-----------------------------
+1. In Command Prompt (from backend folder)
+2. Type: npm start
+3. You should see: "Server running on http://localhost:3000"
+4. KEEP THIS WINDOW OPEN!
+
+
+STEP 4: OPEN FRONTEND
+----------------------
+1. Open Windows Explorer
+2. Go to: F:\claude cli 20 12 2025\frontend
+3. Double-click: index.html
+4. Browser will open the login page
+
+
+STEP 5: LOGIN
+-------------
+Username: admin
+Password: admin123
+
+
+THAT'S IT! YOU'RE READY TO USE THE SYSTEM!
+
+========================================
+
+FEATURES:
+- Register Pilgrims
+- Track Payments (with installment support)
+- Manage Transportation Queue
+- View Accommodation Status
+- Track Ritual Progress
+- Beautiful Dashboard with Statistics
+
+========================================
+
+TROUBLESHOOTING:
+----------------
+Problem: "npm is not recognized"
+Solution: Install Node.js and restart computer
+
+Problem: Login not working
+Solution: Make sure backend server is running (Step 3)
+
+Problem: Data not showing
+Solution: Check backend terminal for errors
+
+For detailed help, see: WEB_SETUP_GUIDE.md
+
+========================================
+
+SUPPORT:
+Check browser console (Press F12) for error messages
+
+========================================
+
+DEFAULT CREDENTIALS:
+Username: admin
+Password: admin123
+
+CHANGE PASSWORD AFTER FIRST LOGIN!
+
+========================================
